@@ -63,5 +63,31 @@ describe '#normalize_attributes with a block' do
       Klass.send(:normalize_attribute, key).should == value
     end
   end
-  
+end
+
+describe 'Normalizing attribute in an AR model' do
+  before do
+    User.class_eval do
+      include AttributeNormalizer
+      normalize_attributes :name
+    end
+    @user = User.new
+  end
+
+  it "should normalize the attribute" do
+    @user.name = ' Jimi Hendrix '
+    @user.name.should == 'Jimi Hendrix'
+  end
+
+  context 'when another instance of the same saved record has been changed' do
+    before do
+      @user = User.create!(:name => 'Jimi Hendrix')
+      @user2 = User.find(@user.id)
+      @user2.update_attributes(:name => 'Thom Yorke')
+    end
+
+    it "should reflect the change when the record is reloaded" do
+      lambda { @user.reload }.should change(@user, :name).from('Jimi Hendrix').to('Thom Yorke')
+    end
+  end
 end
